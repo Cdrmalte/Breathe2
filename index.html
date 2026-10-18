@@ -23,7 +23,7 @@
 @keyframes currentArrive{0%{transform:translateX(-18px) scale(.72);opacity:.72}100%{opacity:1}}
 /* Smooth phase handoff: the next orb follows a measured path into the active orb's exact position. */
 .breath-stage{perspective:1000px;transform-style:preserve-3d}
-.phase-flyer{position:fixed!important;left:0;top:0;margin:0!important;z-index:9999!important;pointer-events:none!important;transform-origin:top left!important;will-change:transform,opacity;transition:none!important;animation:none!important}
+.phase-flyer{position:fixed!important;left:0;top:0;margin:0!important;z-index:9999!important;pointer-events:none!important;box-sizing:border-box!important;will-change:left,top,width,height,opacity;transform:none!important;transition:none!important;animation:none!important}
 @media(prefers-reduced-motion:reduce){.phase-flyer{display:none!important}}
 .phase-track{display:flex;align-items:center;justify-content:center;gap:9px;flex-wrap:wrap;margin:8px auto 18px;max-width:580px}.track-step{display:flex;align-items:center;gap:7px;color:#6f7c70;font-size:11px}.track-dot{width:9px;height:9px;border:1px solid #a7b09e;border-radius:50%;background:#fff9}.track-step.current{color:var(--forest);font-weight:700}.track-step.current .track-dot{background:var(--forest);border-color:var(--forest);box-shadow:0 0 0 4px #36584718}.track-step.upcoming .track-dot{border-color:#d2ad60;background:#f6e7c5}.practice-controls{max-width:520px;margin:auto;position:relative}.practice-status{display:flex;justify-content:space-between;gap:10px;font-size:11px;letter-spacing:.04em;color:#758274;margin-bottom:9px}.practice-progress{background:#dfe4d8aa}.practice-progress div{background:#52735a}.practice-quick{margin-top:13px!important}.practice-quick .pill{background:#fffaf0cc;border-color:#e3dfd1}
 @media(max-width:480px){#practice{padding:18px 12px 22px;border-radius:22px}.breath-stage{min-height:260px;gap:8px}.orb{width:min(58vw,230px);height:min(58vw,230px)}.next-orb{width:86px;height:86px;margin-left:-20px}.next-orb .next-name{font-size:12px}.next-orb .next-seconds{font-size:9px}.orb-label{font-size:25px}.phase-track{gap:7px}.track-step{font-size:10px}.practice-status{font-size:10px}}
@@ -100,6 +100,7 @@ function enter(){
  const p=phases[idx];remaining=p.seconds;
  const nextOrb=$('nextOrb'),orb=$('orb');
  const reduceMotion=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+ /* Measure the source before updating the phase, then measure the active orb after its new class is applied. */
  const sourceRect=nextOrb.getBoundingClientRect();
  orb.style.transition='none';
  update();
@@ -108,22 +109,20 @@ function enter(){
  if(!reduceMotion&&sourceRect.width>0&&targetRect.width>0){
    const flyer=nextOrb.cloneNode(true);
    flyer.id='phaseFlyer';flyer.className='next-orb phase-flyer';
-   flyer.style.width=sourceRect.width+'px';flyer.style.height=sourceRect.height+'px';
-   flyer.style.left=sourceRect.left+'px';flyer.style.top=sourceRect.top+'px';
-   flyer.style.opacity='1';flyer.style.transform='none';
+   Object.assign(flyer.style,{left:sourceRect.left+'px',top:sourceRect.top+'px',width:sourceRect.width+'px',height:sourceRect.height+'px',opacity:'1',transform:'none',margin:'0',position:'fixed'});
    flyer.style.background='radial-gradient(circle at 32% 27%,#f5f1d9 0%,#c3d0b6 48%,#7e9b7f 100%)';
    flyer.style.borderColor='#fff9';
    flyer.style.boxShadow='0 18px 48px #50684a22,inset 0 2px 18px #ffffffa8,inset 0 -10px 22px #56755518';
    flyer.querySelector('.next-name').textContent=p.type==='Hold after inhale'||p.type==='Hold after exhale'?'Hold':p.type;
    flyer.querySelector('.next-seconds').textContent=p.seconds+' sec';
-   document.body.appendChild(flyer);orb.style.opacity='0.08';
-   const dx=targetRect.left-sourceRect.left,dy=targetRect.top-sourceRect.top;
-   const sx=targetRect.width/sourceRect.width,sy=targetRect.height/sourceRect.height;
+   document.body.appendChild(flyer);
+   orb.style.opacity='0';
    const anim=flyer.animate([
-     {transform:'translate(0px,0px) scale(1,1) rotateY(-12deg)',opacity:.72},
-     {transform:`translate(${dx*.72}px,${dy*.72}px) scale(${1+(sx-1)*.78},${1+(sy-1)*.78}) rotateY(5deg)`,opacity:1,offset:.72},
-     {transform:`translate(${dx}px,${dy}px) scale(${sx},${sy}) rotateY(0deg)`,opacity:1}
-   ],{duration:760,easing:'cubic-bezier(.22,.75,.18,1)',fill:'forwards'});
+     {left:sourceRect.left+'px',top:sourceRect.top+'px',width:sourceRect.width+'px',height:sourceRect.height+'px',opacity:.92,offset:0},
+     {left:(sourceRect.left+(targetRect.left-sourceRect.left)*.78)+'px',top:(sourceRect.top+(targetRect.top-sourceRect.top)*.78)+'px',width:(sourceRect.width+(targetRect.width-sourceRect.width)*.84)+'px',height:(sourceRect.height+(targetRect.height-sourceRect.height)*.84)+'px',opacity:1,offset:.78},
+     {left:targetRect.left+'px',top:targetRect.top+'px',width:targetRect.width+'px',height:targetRect.height+'px',opacity:1,offset:.94},
+     {left:targetRect.left+'px',top:targetRect.top+'px',width:targetRect.width+'px',height:targetRect.height+'px',opacity:0,offset:1}
+   ],{duration:820,easing:'cubic-bezier(.2,.72,.18,1)',fill:'forwards'});
    anim.onfinish=()=>{flyer.remove();orb.style.opacity='';orb.style.transition='';};
    anim.oncancel=()=>{flyer.remove();orb.style.opacity='';orb.style.transition='';};
  }else{orb.style.opacity='';orb.style.transition='';}
