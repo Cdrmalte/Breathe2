@@ -21,15 +21,10 @@
 .next-orb .next-name{font:clamp(13px,1.8vw,17px) Georgia,serif;max-width:90%;line-height:1.1}.next-orb .next-seconds{font-size:10px;letter-spacing:.08em;margin-top:6px;color:#76623a}.next-orb.arriving{animation:previewArrive .95s cubic-bezier(.2,.8,.2,1)}.orb.arriving{animation:currentArrive .95s cubic-bezier(.2,.8,.2,1)}
 @keyframes previewArrive{0%{transform:translateX(24px) scale(.86);opacity:.4}55%{transform:translateX(-8px) scale(1.03);opacity:1}100%{transform:translateX(0) scale(1);opacity:.94}}
 @keyframes currentArrive{0%{transform:translateX(-18px) scale(.72);opacity:.72}100%{opacity:1}}
-/* Globe-turn handoff: the preview travels around the near side of an imagined sphere. */
+/* Smooth phase handoff: the next orb follows a measured path into the active orb's exact position. */
 .breath-stage{perspective:1000px;transform-style:preserve-3d}
-.breath-stage.globe-turn .orb-wrap{animation:globeCurrentRoll 1.15s cubic-bezier(.22,.72,.2,1) both;transform-origin:center center}
-.breath-stage.globe-turn .next-orb{animation:globeNextRoll 1.15s cubic-bezier(.22,.72,.2,1) both;transform-origin:center center;z-index:4}
-@keyframes globeCurrentRoll{0%{transform:translateX(0) rotateY(0) scale(1);opacity:1;filter:blur(0)}45%{transform:translateX(-35px) rotateY(35deg) scale(.82);opacity:.82;filter:blur(.2px)}100%{transform:translateX(-72px) rotateY(72deg) scale(.58);opacity:0;filter:blur(1px)}}
-@keyframes globeNextRoll{0%{transform:translateX(0) translateZ(-80px) rotateY(-35deg) scale(.82);opacity:.55}35%{transform:translateX(-35px) translateZ(25px) rotateY(-12deg) scale(1.05);opacity:1}70%{transform:translateX(-105px) translateZ(100px) rotateY(8deg) scale(1.48);opacity:1}100%{transform:translateX(-155px) translateZ(130px) rotateY(0) scale(1.72);opacity:1}}
-.breath-stage.globe-turn .next-orb{box-shadow:0 16px 42px #9b7b3c30,inset 0 1px 12px #ffffffcc}
-@media(max-width:480px){@keyframes globeNextRoll{0%{transform:translateX(0) translateZ(-60px) rotateY(-30deg) scale(.82);opacity:.55}35%{transform:translateX(-20px) translateZ(20px) rotateY(-10deg) scale(1.04);opacity:1}70%{transform:translateX(-78px) translateZ(70px) rotateY(5deg) scale(1.36);opacity:1}100%{transform:translateX(-105px) translateZ(90px) rotateY(0) scale(1.5);opacity:1}}}
-@media(prefers-reduced-motion:reduce){.breath-stage.globe-turn .orb-wrap,.breath-stage.globe-turn .next-orb{animation:none!important}}
+.phase-flyer{position:fixed!important;left:0;top:0;margin:0!important;z-index:9999!important;pointer-events:none!important;transform-origin:top left!important;will-change:transform,opacity;transition:none!important;animation:none!important}
+@media(prefers-reduced-motion:reduce){.phase-flyer{display:none!important}}
 .phase-track{display:flex;align-items:center;justify-content:center;gap:9px;flex-wrap:wrap;margin:8px auto 18px;max-width:580px}.track-step{display:flex;align-items:center;gap:7px;color:#6f7c70;font-size:11px}.track-dot{width:9px;height:9px;border:1px solid #a7b09e;border-radius:50%;background:#fff9}.track-step.current{color:var(--forest);font-weight:700}.track-step.current .track-dot{background:var(--forest);border-color:var(--forest);box-shadow:0 0 0 4px #36584718}.track-step.upcoming .track-dot{border-color:#d2ad60;background:#f6e7c5}.practice-controls{max-width:520px;margin:auto;position:relative}.practice-status{display:flex;justify-content:space-between;gap:10px;font-size:11px;letter-spacing:.04em;color:#758274;margin-bottom:9px}.practice-progress{background:#dfe4d8aa}.practice-progress div{background:#52735a}.practice-quick{margin-top:13px!important}.practice-quick .pill{background:#fffaf0cc;border-color:#e3dfd1}
 @media(max-width:480px){#practice{padding:18px 12px 22px;border-radius:22px}.breath-stage{min-height:260px;gap:8px}.orb{width:min(58vw,230px);height:min(58vw,230px)}.next-orb{width:86px;height:86px;margin-left:-20px}.next-orb .next-name{font-size:12px}.next-orb .next-seconds{font-size:9px}.orb-label{font-size:25px}.phase-track{gap:7px}.track-step{font-size:10px}.practice-status{font-size:10px}}
 @media(prefers-reduced-motion:reduce){.next-orb.arriving,.orb.arriving{animation:none!important}}
@@ -101,7 +96,39 @@ function renderTrack(){let el=$('phaseTrack');if(!el)return;el.innerHTML='';let 
 function update(){let p=phases[idx]||{type:'Ready',seconds:0};$('rounds').disabled=!currentRepeatable;$('rounds').value=currentRepeatable?($('rounds').value||'4'):'1';$('rounds').style.opacity=currentRepeatable?'1':'.55';$('rounds').title=currentRepeatable?'Repeat this pattern for the selected number of cycles':'This template already contains all rounds; repeating is disabled';$('roundsHint').textContent=currentRepeatable?'A comfortable rhythm, at your own pace':'This exercise already contains its full sequence; it will run once.';$('phase').textContent=done?'Complete':running?p.type:'Ready';$('count').textContent=done?'Well done':running?Math.max(0,remaining)+' sec':'Take your time';$('cycle').textContent='CYCLE '+Math.min(cycle,rounds)+' OF '+rounds;$('elapsed').textContent=done?'SESSION COMPLETE':running?'BREATHE AT YOUR OWN PACE':'READY WHEN YOU ARE';let past=phases.slice(0,idx).reduce((s,x)=>s+x.seconds,0);$('fill').style.width=(done?100:Math.max(0,((cycle-1)*total()+past+(p.seconds-remaining))/Math.max(1,total()*rounds)*100))+'%';$('orb').className='orb '+(running?(p.type==='Inhale'?'inhale':p.type==='Exhale'?'exhale':p.type==='Breathe normally'?'breath-normal':'hold'):'');$('start').textContent=done?'✓ Completed':running?'Ⅱ  Pause':'▶  '+(elapsed?'Resume':'Begin');$('summary').textContent=summary(phases);$('duration').textContent=total()*Number($('rounds').value)+' seconds';let n=upcoming();$('nextPhase').textContent=n.type==='Complete'?'Complete':n.type.replace('Hold after inhale','Hold').replace('Hold after exhale','Hold');$('nextCount').textContent=n.type==='Complete'?'FINAL STEP':n.seconds+' SEC';$('nextOrb').style.opacity=n.type==='Complete'?'0.35':'0.96';$('nextOrb').style.visibility='visible';renderTrack();sync()}
 function stop(){running=false;clearInterval(timer);timer=null;try{speechSynthesis.cancel()}catch(e){}}
 function reset(){stop();idx=0;cycle=1;remaining=0;done=false;elapsed=0;update()}
-function enter(){let p=phases[idx];remaining=p.seconds;const stage=document.querySelector('.breath-stage');stage.classList.remove('globe-turn');$('orb').classList.remove('arriving');$('nextOrb').classList.remove('arriving');void stage.offsetWidth;stage.classList.add('globe-turn');setTimeout(()=>{stage.classList.remove('globe-turn');$('orb').classList.remove('arriving');$('nextOrb').classList.remove('arriving')},1180);say(({'Inhale':'Breathe in','Exhale':'Breathe out','Hold after inhale':'Hold gently','Hold after exhale':'Rest gently','Breathe normally':'Breathe normally, without changing your natural rhythm.'})[p.type]);chime();update()}
+function enter(){
+ const p=phases[idx];remaining=p.seconds;
+ const nextOrb=$('nextOrb'),orb=$('orb');
+ const reduceMotion=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+ const sourceRect=nextOrb.getBoundingClientRect();
+ orb.style.transition='none';
+ update();
+ void orb.offsetWidth;
+ const targetRect=orb.getBoundingClientRect();
+ if(!reduceMotion&&sourceRect.width>0&&targetRect.width>0){
+   const flyer=nextOrb.cloneNode(true);
+   flyer.id='phaseFlyer';flyer.className='next-orb phase-flyer';
+   flyer.style.width=sourceRect.width+'px';flyer.style.height=sourceRect.height+'px';
+   flyer.style.left=sourceRect.left+'px';flyer.style.top=sourceRect.top+'px';
+   flyer.style.opacity='1';flyer.style.transform='none';
+   flyer.style.background='radial-gradient(circle at 32% 27%,#f5f1d9 0%,#c3d0b6 48%,#7e9b7f 100%)';
+   flyer.style.borderColor='#fff9';
+   flyer.style.boxShadow='0 18px 48px #50684a22,inset 0 2px 18px #ffffffa8,inset 0 -10px 22px #56755518';
+   flyer.querySelector('.next-name').textContent=p.type==='Hold after inhale'||p.type==='Hold after exhale'?'Hold':p.type;
+   flyer.querySelector('.next-seconds').textContent=p.seconds+' sec';
+   document.body.appendChild(flyer);orb.style.opacity='0.08';
+   const dx=targetRect.left-sourceRect.left,dy=targetRect.top-sourceRect.top;
+   const sx=targetRect.width/sourceRect.width,sy=targetRect.height/sourceRect.height;
+   const anim=flyer.animate([
+     {transform:'translate(0px,0px) scale(1,1) rotateY(-12deg)',opacity:.72},
+     {transform:`translate(${dx*.72}px,${dy*.72}px) scale(${1+(sx-1)*.78},${1+(sy-1)*.78}) rotateY(5deg)`,opacity:1,offset:.72},
+     {transform:`translate(${dx}px,${dy}px) scale(${sx},${sy}) rotateY(0deg)`,opacity:1}
+   ],{duration:760,easing:'cubic-bezier(.22,.75,.18,1)',fill:'forwards'});
+   anim.onfinish=()=>{flyer.remove();orb.style.opacity='';orb.style.transition='';};
+   anim.oncancel=()=>{flyer.remove();orb.style.opacity='';orb.style.transition='';};
+ }else{orb.style.opacity='';orb.style.transition='';}
+ say(({'Inhale':'Breathe in','Exhale':'Breathe out','Hold after inhale':'Hold gently','Hold after exhale':'Rest gently','Breathe normally':'Breathe normally, without changing your natural rhythm.'})[p.type]);chime();
+}
 function next(){idx++;if(idx>=phases.length){idx=0;cycle++;if(cycle>rounds){stop();done=true;update();say('Session complete. Take a moment before returning to your day.');toast('Session complete. Well done for taking a moment for yourself.');return}}enter()}
 function start(){if(!total()){toast('Add a phase with a duration first.');return}if(done)reset();rounds=currentRepeatable?Number($('rounds').value):1;if(running){stop();update();return}running=true;if(!remaining)enter();else update();if(!timer)timer=setInterval(()=>{if(!running)return;remaining--;elapsed++;if(remaining<=0)next();else update()},1000)}
 function show(tab){['home','practice','exercises','settings'].forEach(t=>{$(t).classList.toggle('hidden',t!==tab);let b=document.querySelector('[data-tab="'+t+'"]');if(b)b.classList.toggle('active',t===tab)});if(tab==='exercises'){drawList();drawEditor()}if(tab==='home')updateRecommendation()}
